@@ -1,0 +1,61 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+namespace ProDirFiles {
+    public class AutoProcessFiles {
+        /// <summary>
+        /// 打开一个文件，保留从 StartFlag 至 EndFlag 的内容，其余内容删除
+        /// </summary>
+        /// <param name="FileName">文件路径</param>
+        /// <param name="StartFlag">起始标志</param>
+        /// <param name="EndFlag">结束标志</param>
+        /// <param name="Reserve">在新文件中是否保留起始和结束标志字符串, true 为保留，false 为不保留</param>
+        public void ProFile(string FileName, string StartFlag, string EndFlag, bool Reserve = true) {
+            FileStream fs = new FileStream(FileName, FileMode.Open, FileAccess.ReadWrite);
+            if (fs.Length == 0) return;
+            byte[] contentBytes = new byte[fs.Length];
+            fs.Read(contentBytes, 0, contentBytes.Length);
+            string content = Encoding.UTF8.GetString(contentBytes);
+            int StartPos = content.IndexOf(StartFlag);
+            int EndPos = content.LastIndexOf(EndFlag);
+            bool Found = false;
+            if (StartPos != -1 && EndPos != -1) Found = true;
+
+            if (!Found) {
+                StartPos = 0;
+                EndPos = content.Length;
+            } else {
+                if (Reserve) {
+                    EndPos += EndFlag.Length;
+                } else {
+                    StartPos += StartFlag.Length;
+                }
+            }
+            content = content.Substring(StartPos, EndPos - StartPos);
+            fs.Seek(0, SeekOrigin.Begin);
+            contentBytes = Encoding.UTF8.GetBytes(content);
+            fs.Write(contentBytes, 0, contentBytes.Length);
+            fs.SetLength(contentBytes.Length);
+            fs.Close();
+        }
+
+        /// <summary>
+        /// 对指定目录的所有文件均执行 ProFiles 操作
+        /// </summary>
+        /// <param name="Dir">目录名称</param>
+        /// <param name="StartFlag">起始标志</param>
+        /// <param name="EndFlag">结束标志</param>
+        /// <param name="Reserve">在新文件中是否保留起始和结束标志字符串, true 为保留，false 为不保留</param>
+        public void ProDir(string Dir, string StartFlag, string EndFlag, bool Reserve = true) {
+            foreach (string filename in Directory.GetFiles(Dir)) {
+                try {
+                    ProFile(filename, StartFlag, EndFlag, Reserve);
+                } catch {
+                }
+            }
+        }
+    }
+
+}
